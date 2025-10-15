@@ -13,7 +13,7 @@ const flagsCorretas = {
     "CONTINGENCIA": "ENIAC",
     "ANALISE": "UFJRQkZISQ==", // Valor da Chave 2 (Vigenère/Base64)
     "HEURISTICA": "IA",
-    "EXECUCAO": "GUR ANZV VF RGUVPCG" // Valor da Chave 4 (ROT13)
+    "EXECUCAO": "GURANZVVFRGUVPCG" // Valor da Chave 4 (ROT13)
 };
 
 // Middleware para processar requisições POST
