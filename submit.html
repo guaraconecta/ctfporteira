@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submissão de Flags - CTF Aurora</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        body { background: #120f14; color: #36ff21; font-family: 'Share Tech Mono', monospace; padding: 20px; }
+        .container { max-width: 400px; margin: 0 auto; background: rgba(12,18,10,0.96); padding: 20px; border-radius: 14px; border: 2px solid #29cc18; box-shadow: 0 0 26px #16e13055; }
+        input, button, select { 
+            display: block; width: 100%; padding: 10px; margin-top: 10px; 
+            font-family: 'Share Tech Mono', monospace; 
+            border-radius: 8px; border: 1.5px solid #41fa89;
+            background: #19191d; color: #aaffbe;
+        }
+        button { background: #38ff21; color: #000e09; font-weight: bold; cursor: pointer; border: none; }
+        .message { margin-top: 20px; padding: 10px; border: 1px dashed #41fa89; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Submissão de Flags</h2>
+        <form id="flagForm">
+            <input type="text" name="team" placeholder="Nome da Equipe" required>
+            
+            <select name="type" required>
+                <option value="">Selecione o Tipo de Flag</option>
+                <option value="CONTINGENCIA">CONTINGENCIA (Chave 1)</option>
+                <option value="ANALISE">ANALISE (Chave 2)</option>
+                <option value="HEURISTICA">HEURISTICA (Chave 3)</option>
+                <option value="EXECUCAO">EXECUCAO (Chave 4)</option>
+            </select>
+            
+            <input type="text" name="flag" placeholder="Digite a Flag" required>
+            
+            <button type="submit">Submeter</button>
+        </form>
+        <div id="responseMessage" class="message"></div>
+    </div>
+
+    <script>
+        document.getElementById('flagForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const messageDiv = document.getElementById('responseMessage');
+            
+            messageDiv.textContent = 'Processando...';
+            messageDiv.style.color = '#fffdc2';
+
+            try {
+                // A URL completa da API na Vercel
+                const API_URL = 'https://ctfporteira.vercel.app'; 
+                const response = await fetch(API_URL + '/api/submit', {
+                    method: 'POST',
+                    body: new FormData(form)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    messageDiv.style.color = '#36ff21';
+                    messageDiv.textContent = `SUCESSO! ${result.message}`;
+                    
+                    if (result.next_step) {
+                        messageDiv.textContent += ` Próximo passo: ${result.next_step}`;
+                    }
+                } else {
+                    messageDiv.style.color = '#ff4141';
+                    messageDiv.textContent = `ERRO: ${result.message}`;
+                }
+            } catch (error) {
+                messageDiv.style.color = '#ff4141';
+                messageDiv.textContent = 'Erro de rede ou servidor. Verifique a conexão.';
+                console.error('Fetch Error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
