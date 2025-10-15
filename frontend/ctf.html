@@ -178,7 +178,7 @@
             O Sindicato me serve, mas eu não sirvo a ninguém.<br><br>
             <b>O que eu sou?</b>
         </p>
-        <form id="ctfform" action="https://ctfporteira.vercel.app/terminal/4858/" method="POST" autocomplete="off" novalidate>
+        <form id="ctfform" method="POST" autocomplete="off" novalidate>
             <div id="inicio">
                 <input name="resposta" id="resposta" maxlength="60" placeholder="Digite sua resposta aqui..." required>
                 <button type="submit" id="submitBtn">Enviar resposta</button>
@@ -193,7 +193,7 @@
                 <button type="submit" id="expurgoBtn">Executar comando de expurgo</button>
             </div>
         </form>
-        <div class="message" id="msg">{{message}}</div>
+        <div class="message" id="msg"></div>
     </div>
     <script>
         // Matrix rain effect
@@ -226,20 +226,47 @@
             columns = Math.floor(c.width / fontSize);
             drops = Array(columns).fill(1);
         });
-        // Multipasso
-        document.getElementById('ctfform').addEventListener('submit', function(e) {
+
+        // Lógica de submissão do formulário
+        const API_URL = 'https://ctfporteira.vercel.app'; 
+
+        document.getElementById('ctfform').addEventListener('submit', async function(e) {
+            e.preventDefault(); // Impede o envio padrão do formulário.
+
+            const form = e.target;
+            const messageDiv = document.getElementById('msg');
+            messageDiv.textContent = 'Processando...';
+
             const resposta = document.getElementById('resposta').value.trim().toUpperCase();
-            const inicioDiv = document.getElementById('inicio');
-            const expurgoDiv = document.getElementById('expurgo');
-            if (inicioDiv.style.display !== "none" && resposta === "CODIGO") {
-                e.preventDefault();
-                inicioDiv.style.display = "none";
-                expurgoDiv.style.display = "flex";
+            
+            // Verifica se a resposta inicial é "CODIGO" para fazer a transição de tela.
+            if (document.getElementById('inicio').style.display !== "none" && resposta === "CODIGO") {
+                document.getElementById('inicio').style.display = "none";
+                document.getElementById('expurgo').style.display = "flex";
                 document.getElementById('telefone').required = true;
                 document.getElementById('email').required = true;
                 document.getElementById('expurgoInput').required = true;
                 document.getElementById('telefone').focus();
-                document.getElementById('msg').textContent = "Chave reconhecida! Digite seus dados e a senha-mestra final para expulsar o invasor.";
+                messageDiv.textContent = "Chave reconhecida! Digite seus dados e a senha-mestra final para expulsar o invasor.";
+                return; // Encerra a função, pois não há necessidade de enviar o formulário.
+            }
+
+            // Se não for "CODIGO" ou se o formulário de "expurgo" estiver visível, envie os dados para a API.
+            try {
+                const response = await fetch(API_URL + '/api/submit-terminal', {
+                    method: 'POST',
+                    body: new FormData(form),
+                });
+                
+                const result = await response.json();
+
+                if (result.success) {
+                    messageDiv.textContent = 'SUCESSO! ' + result.message;
+                } else {
+                    messageDiv.textContent = 'ERRO: ' + result.message;
+                }
+            } catch (error) {
+                messageDiv.textContent = 'Erro de rede ou servidor. Verifique a conexão.';
             }
         });
     </script>
