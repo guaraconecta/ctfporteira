@@ -11,9 +11,9 @@ const { Resend } = require('resend');
 // Substitua o KV por um objeto simples ou banco de dados externo
 const flagsCorretas = {
     "CONTINGENCIA": "ENIAC",
-    "ANALISE": "[RESULTADO CIFRADO BASE64 AQUI]",
+    "ANALISE": "UFJRQkZISQ==",
     "HEURISTICA": "IA",
-    "EXECUCAO": "GURANMVVFRGUVPCG"
+    "EXECUCAO": "GUR ANZV VF RGUVPCG"
 };
 
 // Middleware para processar requisições POST
