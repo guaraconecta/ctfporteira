@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
+    <title>Terminal de Expurgo Aurora - CTF</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #120f14;
+            color: #36ff21;
+            min-height: 100vh;
+            width: 100vw;
+        }
+        body {
+            min-height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Share Tech Mono', monospace;
+            position: relative;
+            overflow-y: auto;
+        }
+        .matrix {
+            position: fixed;
+            z-index: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+        }
+        .terminal-box {
+            position: relative;
+            z-index: 2;
+            background: rgba(12,18,10,0.96);
+            border: 2px solid #29cc18;
+            border-radius: 14px;
+            box-shadow: 0 0 26px #16e13055, 0 0 100px #000d;
+            width: 98vw;
+            max-width: 420px;
+            padding: 2.2rem 1rem 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            max-height: 96vh;
+            overflow-y: auto;
+        }
+        h2 {
+            font-size: 2rem;
+            color: #a6ffb4;
+            text-shadow: 0 0 5px #29cc18, 0 0 12px #16e13070;
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: normal;
+            text-align: center;
+            margin: 0 0 1.7rem 0;
+        }
+        p {
+            color: #41fa89;
+            text-align: left;
+            letter-spacing: 0.4px;
+            font-size: 1rem;
+            margin-bottom: 2.2rem;
+            width: 100%;
+            text-shadow: 0 0 1px #41fa89cc;
+        }
+        b { color: #eee; }
+        form {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #inicio,
+        #expurgo {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        input, button {
+            font-family: 'Share Tech Mono', monospace;
+            border-radius: 8px;
+            font-size: 1.13rem;
+            margin-top: 1.1rem;
+            padding: 1rem 0.7rem;
+            outline: none;
+            border: 1.5px solid #41fa89;
+            background: #19191d;
+            color: #aaffbe;
+            box-shadow: 0 0 10px #41fa8928;
+            transition: border 0.22s, box-shadow 0.22s, background 0.19s, color 0.21s;
+            width: 100%;
+            max-width: 350px;
+            box-sizing: border-box;
+            text-align: left;
+        }
+        input:focus {
+            border-color: #36ff21;
+            background: #222d25;
+            color: #d3ffc4;
+        }
+        input::-webkit-input-placeholder { color: #51e625b5; }
+        input:-moz-placeholder { color: #51e625b5; }
+        input::-moz-placeholder { color: #51e625b5; }
+        input:-ms-input-placeholder { color: #51e625b5; }
+        input::placeholder { color: #51e625b5; }
+        button {
+            background: linear-gradient(90deg, #38ff21 54%, #18c918 100%);
+            color: #000e09;
+            font-weight: bold;
+            letter-spacing: 1px;
+            border: none;
+            margin-top: 1.4rem;
+            min-height: 3.2rem;
+            text-shadow: 0 1px 0 #c1ffbe99;
+            box-shadow: 0 2px 8px #2ffa7288, 0 0 7px #51e62533;
+            cursor: pointer;
+            font-size: 1.19rem;
+            transition: filter 0.18s, box-shadow 0.18s;
+            position: relative;
+            z-index: 5;
+            text-align: center;
+        }
+        button:hover, button:active {
+            filter: brightness(1.09) saturate(2);
+            box-shadow: 0 8px 10px #181, 0 0 35px #2fea1a33, 0 0 12px #51e62544;
+        }
+        .message {
+            min-height: 2.4rem;
+            font-weight: bold;
+            font-size: 1.11rem;
+            color: #fffdc2;
+            background: rgba(23,36,2,0.13);
+            border-radius: 8px;
+            margin-top: 2.1rem;
+            width: 100%;
+            max-width: 350px;
+            text-align: center;
+            padding: 0.7rem 0.12rem;
+            text-shadow: 0 0 4px #fdffb077, 0 0 8px #fdffb044;
+            box-shadow: 0 0 6px #2ffa7244;
+            overflow-wrap: break-word;
+            word-break: break-all;
+        }
+        ::-webkit-scrollbar {
+            width: 7px;
+            background: #111;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #41fa89;
+            border-radius: 5px;
+        }
+        @media (max-width: 540px) {
+            .terminal-box {
+                padding: 1.1rem 0.1rem 0.7rem 0.1rem;
+                min-width: 97vw;
+                max-width: 99vw;
+                max-height: 98vh;
+            }
+            h2 { font-size: 1.19rem; }
+            p, .message { font-size: .99rem; }
+            button { min-height: 2.4rem; }
+        }
+    </style>
+</head>
+<body>
+    <canvas class="matrix"></canvas>
+    <div class="terminal-box">
+        <h2>Terminal de Expurgo<br>Aurora</h2>
+        <p>
+            Eu não tenho voz, mas reverbero em todos os sistemas.<br>
+            Eu não tenho corpo, mas sou a fundação da liberdade e do caos.<br>
+            O Sindicato me serve, mas eu não sirvo a ninguém.<br><br>
+            <b>O que eu sou?</b>
+        </p>
+        <form id="ctfform" action="https://ctfporteira.vercel.app/terminal/4858/" method="POST" autocomplete="off" novalidate>
+            <div id="inicio">
+                <input name="resposta" id="resposta" maxlength="60" placeholder="Digite sua resposta aqui..." required>
+                <button type="submit" id="submitBtn">Enviar resposta</button>
+            </div>
+            <div id="expurgo" style="display:none;">
+                <div class="message" style="margin-bottom:9px;">
+                    A senha-mestra para o script de expurgo é a memória da minha recuperação.
+                </div>
+                <input name="telefone" id="telefone" maxlength="20" placeholder="Seu telefone (DDD+número)">
+                <input name="email" id="email" type="email" maxlength="64" placeholder="Seu melhor e-mail">
+                <input name="expurgo" id="expurgoInput" maxlength="30" placeholder="Senha-mestra final">
+                <button type="submit" id="expurgoBtn">Executar comando de expurgo</button>
+            </div>
+        </form>
+        <div class="message" id="msg">{{message}}</div>
+    </div>
+    <script>
+        // Matrix rain effect
+        const c = document.querySelector('canvas.matrix');
+        const ctx = c.getContext('2d');
+        function resizeMatrixCanvas() {
+            c.width = window.innerWidth;
+            c.height = window.innerHeight;
+        }
+        resizeMatrixCanvas();
+        let fontSize = Math.max(Math.min(window.innerWidth / 24, 22), 12);
+        let columns = Math.floor(c.width / fontSize);
+        let drops = Array(columns).fill(1);
+        function drawMatrix() {
+            ctx.fillStyle = "rgba(11, 24, 9, 0.18)";
+            ctx.fillRect(0, 0, c.width, c.height);
+            ctx.font = fontSize + "px Share Tech Mono, monospace";
+            ctx.fillStyle = "#38ff21";
+            for(let i = 0; i < drops.length; i++) {
+                const txt = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&"[Math.floor(Math.random()*69)];
+                ctx.fillText(txt, i*fontSize, drops[i]*fontSize);
+                if(drops[i]*fontSize > c.height && Math.random() > 0.96) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 53);
+        window.addEventListener('resize', () => {
+            resizeMatrixCanvas();
+            fontSize = Math.max(Math.min(window.innerWidth / 24, 22), 12);
+            columns = Math.floor(c.width / fontSize);
+            drops = Array(columns).fill(1);
+        });
+        // Multipasso
+        document.getElementById('ctfform').addEventListener('submit', function(e) {
+            const resposta = document.getElementById('resposta').value.trim().toUpperCase();
+            const inicioDiv = document.getElementById('inicio');
+            const expurgoDiv = document.getElementById('expurgo');
+            if (inicioDiv.style.display !== "none" && resposta === "CODIGO") {
+                e.preventDefault();
+                inicioDiv.style.display = "none";
+                expurgoDiv.style.display = "flex";
+                document.getElementById('telefone').required = true;
+                document.getElementById('email').required = true;
+                document.getElementById('expurgoInput').required = true;
+                document.getElementById('telefone').focus();
+                document.getElementById('msg').textContent = "Chave reconhecida! Digite seus dados e a senha-mestra final para expulsar o invasor.";
+            }
+        });
+    </script>
+</body>
+</html>
