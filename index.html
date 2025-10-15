@@ -178,7 +178,8 @@
             O Sindicato me serve, mas eu não sirvo a ninguém.<br><br>
             <b>O que eu sou?</b>
         </p>
-        <form id="ctfform" action="https://ctfporteira.vercel.app/terminal/4858/" method="POST" autocomplete="off" novalidate>
+        <!-- REMOVIDO: action="https://ctfporteira.vercel.app/terminal/4858/" -->
+        <form id="ctfform" method="POST" autocomplete="off" novalidate>
             <div id="inicio">
                 <input name="resposta" id="resposta" maxlength="60" placeholder="Digite sua resposta aqui..." required>
                 <button type="submit" id="submitBtn">Enviar resposta</button>
@@ -226,20 +227,63 @@
             columns = Math.floor(c.width / fontSize);
             drops = Array(columns).fill(1);
         });
-        // Multipasso
-        document.getElementById('ctfform').addEventListener('submit', function(e) {
+
+        // --- Lógica de Submissão para a Vercel ---
+        const API_URL = 'https://ctfporteira.vercel.app'; 
+
+        document.getElementById('ctfform').addEventListener('submit', async function(e) {
+            e.preventDefault(); // Impede o envio padrão do formulário.
+
+            const form = e.target;
+            const messageDiv = document.getElementById('msg');
+            messageDiv.textContent = 'Processando...';
+            messageDiv.style.color = '#fffdc2'; // Cor amarela/branca para processamento
+
             const resposta = document.getElementById('resposta').value.trim().toUpperCase();
+            
             const inicioDiv = document.getElementById('inicio');
             const expurgoDiv = document.getElementById('expurgo');
+
+            // **PASSO 1: Lógica de Transição de Tela (CODIGO)**
             if (inicioDiv.style.display !== "none" && resposta === "CODIGO") {
-                e.preventDefault();
                 inicioDiv.style.display = "none";
                 expurgoDiv.style.display = "flex";
                 document.getElementById('telefone').required = true;
                 document.getElementById('email').required = true;
                 document.getElementById('expurgoInput').required = true;
                 document.getElementById('telefone').focus();
-                document.getElementById('msg').textContent = "Chave reconhecida! Digite seus dados e a senha-mestra final para expulsar o invasor.";
+                messageDiv.textContent = "Chave reconhecida! Digite seus dados e a senha-mestra final para expulsar o invasor.";
+                messageDiv.style.color = '#36ff21'; // Cor verde para sucesso
+                return; // Interrompe o envio para a API
+            }
+
+            // **PASSO 2: Envio Final para a Vercel (CACHE)**
+            // Se o formulário de expurgo estiver visível E NÃO ESTAMOS na transição inicial
+            if (expurgoDiv.style.display !== "none") {
+                try {
+                    const response = await fetch(API_URL + '/api/submit-terminal', {
+                        method: 'POST',
+                        body: new FormData(form),
+                    });
+                    
+                    const result = await response.json();
+
+                    if (result.success) {
+                        messageDiv.textContent = 'SUCESSO! ' + result.message;
+                        messageDiv.style.color = '#36ff21'; 
+                    } else {
+                        messageDiv.textContent = 'ERRO: ' + result.message;
+                        messageDiv.style.color = '#ff4141'; // Cor vermelha para erro
+                    }
+                } catch (error) {
+                    messageDiv.textContent = 'Erro de rede ou servidor. Verifique a conexão.';
+                    messageDiv.style.color = '#ff4141';
+                    console.error('Fetch Error:', error);
+                }
+            } else {
+                // Se a resposta inicial não era CODIGO
+                messageDiv.textContent = "Resposta incorreta, tente novamente.";
+                messageDiv.style.color = '#ff4141';
             }
         });
     </script>
