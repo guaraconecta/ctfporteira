@@ -28,19 +28,16 @@ app.use((req, res, next) => {
     next();
 });
 
-// ROTA DE TRATAMENTO 1: Intercepta o acesso GET ao caminho do terminal
+// ROTA 1: Intercepta o acesso GET ao caminho do terminal (Redirecionamento 302)
 app.get('/terminal/4858/', (req, res) => {
     // Redireciona o usuário para a página correta no GitHub Pages
     res.redirect(302, 'https://guaraconecta.github.io/ctfporteira/index.html');
 });
 
-
 // ROTA 2: Validação das Flags Intermediárias (Usada por submit.html)
 app.post('/api/submit', (req, res) => {
-    // ... (Sua lógica de validação de Flags Intermediárias permanece aqui) ...
-
+    // Lógica para CORS e Validação de Flags Intermediárias
     const { team, type, flag } = req.body;
-
     const flagSubmetida = (flag || "").trim().toUpperCase();
     const flagType = (type || "").trim().toUpperCase();
 
@@ -58,17 +55,15 @@ app.post('/api/submit', (req, res) => {
         return res.status(200).json({ success: false, message: "Flag incorreta. Tente novamente." });
     }
 
-    const currentTime = new Date().toISOString();
-
     if (flagType === "EXECUCAO") {
         return res.status(200).json({ 
             success: true, 
-            message: "Flag EXECUTADA! A última barreira foi desativada. O Terminal de Expurgo está ativo.",
-            next_step: "/terminal/4858/"
+            message: "Flag EXECUTADA! O Terminal de Expurgo está ativo.",
+            next_step: "https://guaraconecta.github.io/ctfporteira/index.html" // URL do terminal
         });
     }
 
-    res.status(200).json({ 
+    return res.status(200).json({ 
         success: true, 
         message: `Flag ${flagType} aceita! A próxima pista foi liberada.` 
     });
@@ -77,51 +72,64 @@ app.post('/api/submit', (req, res) => {
 
 // ROTA 3: Validação do Terminal de Expurgo (Chave 5) (Usada por index.html)
 app.post('/api/submit-terminal', async (req, res) => {
+    // O frontend envia todos os campos. O 'resposta' contém a palavra 'CODIGO' ou o valor vazio.
     const { telefone, email, expurgo, resposta } = req.body;
     
     const flagResposta = (resposta || "").trim().toUpperCase();
     const flagExpurgo = (expurgo || "").trim().toUpperCase();
     
-    let message = "";
-    
-    if (flagResposta === "CODIGO" && (!telefone || !email || !flagExpurgo)) {
-        message = "Chave reconhecida! Digite seus dados e a senha-mestra final para executar o expurgo.";
-        return res.json({ success: true, message: message });
-    }
-
+    // CASO 1: Validação da senha mestra CACHE (SUCESSO FINAL)
     if (flagExpurgo === "CACHE" && telefone && email) {
         
+        // Simulação de registro de tempo (Vercel não tem KV, então fazemos apenas o cálculo)
         const now = new Date();
-        const brNow = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+        const brNow = new Date(now.getTime() - 3 * 60 * 60 * 1000); // Ajuste simples para GMT-3
         const brTimeString = brNow.toLocaleString("pt-BR") + " GMT-3";
         
         const resend = new Resend(process.env.RESEND_KEY);
 
-        await resend.emails.send({
-            from: "noreply@resend.dev",
-            to: [email],
-            subject: "Parabéns! Você concluiu o CTF",
-            text: `Parabéns! Você concluiu o CTF. Telefone: ${telefone}, Data/hora: ${brTimeString}`
-        });
+        try {
+            // Envio de E-mail ao Participante
+            await resend.emails.send({
+                from: "noreply@resend.dev",
+                to: [email],
+                subject: "Parabéns! Você concluiu o CTF",
+                text: `Parabéns! Você concluiu o CTF. Telefone: ${telefone}, Data/hora: ${brTimeString}`
+            });
 
-        await resend.emails.send({
-            from: "noreply@resend.dev",
-            to: ["polypuslabs@proton.me"],
-            subject: "Novo vencedor do CTF",
-            text: `Novo vencedor!\nTelefone: ${telefone}\nE-mail: ${email}\nData/hora: ${brTimeString}`
-        });
+            // Envio de E-mail para a Polypus Labs
+            await resend.emails.send({
+                from: "noreply@resend.dev",
+                to: ["polypuslabs@proton.me"],
+                subject: "Novo vencedor do CTF",
+                text: `Novo vencedor!\nTelefone: ${telefone}\nE-mail: ${email}\nData/hora: ${brTimeString}`
+            });
 
-        message = "Parabéns! Você executou o comando de expurgo e receberá um e-mail de confirmação!";
-        return res.json({ success: true, message: message });
+            // RESPOSTA FINAL DE VITÓRIA
+            return res.json({ 
+                success: true, 
+                message: "Parabéns! Você executou o comando de expurgo e receberá um e-mail de confirmação!"
+            });
+
+        } catch (error) {
+            // Se o envio do e-mail falhar, ainda retornamos sucesso para o usuário, 
+            // mas logamos o erro (Vercel logs)
+            console.error("Erro no envio de e-mail pela Resend:", error);
+            return res.json({ 
+                success: true, 
+                message: "Comando executado, mas houve um erro no envio do e-mail de confirmação. Verifique sua caixa de entrada mais tarde."
+            });
+        }
     }
 
+    // CASO 2: Senha mestra incorreta (Após a transição de tela)
     if (telefone && email && flagExpurgo !== "CACHE") {
-        message = "Senha-mestra incorreta. Tente novamente.";
-        return res.json({ success: false, message: message });
+        return res.json({ success: false, message: "Senha-mestra incorreta. Tente novamente." });
     }
     
-    message = "Resposta inicial incorreta, tente novamente.";
-    return res.json({ success: false, message: message });
+    // CASO 3: Qualquer outro cenário que não seja a validação inicial (CODIGO)
+    // ou a submissão final (CACHE) (Ex: campos vazios)
+    return res.json({ success: false, message: "Dados incompletos ou requisição inválida." });
 });
 
 
