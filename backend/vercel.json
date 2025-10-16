@@ -1,4 +1,3 @@
-// /backend/vercel.json
 {
   "version": 2,
   "builds": [
@@ -9,8 +8,13 @@
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "index.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "index.js"
     }
   ]
 }
+
