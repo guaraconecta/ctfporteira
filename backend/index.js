@@ -1,4 +1,4 @@
-// /backend/index.js -tete
+// /backend/index.js
 
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -19,7 +19,7 @@ const flagsCorretas = {
 
 // --- MIDDLEWARE ---
 
-// **CORREÇÃO FINAL DO CORS:** Permite TODAS as origens (*). Isso deve resolver o erro de pré-voo (preflight).
+// **CORREÇÃO FINAL DO CORS:** Permite TODAS as origens (*) para resolver o erro de pré-voo.
 app.use(cors()); 
 
 // Permite ao Express ler dados de formulários (FormData) de forma robusta
@@ -65,7 +65,6 @@ app.post('/api/submit', (req, res) => {
 
 // ROTA 3: Validação do Terminal de Expurgo (Chave 5 - CACHE)
 app.post('/api/submit-terminal', async (req, res) => {
-    // Extração segura dos dados
     const telefone = (req.body.telefone || "").trim();
     const email = (req.body.email || "").trim();
     const expurgo = (req.body.expurgo || "").trim().toUpperCase();
@@ -75,7 +74,6 @@ app.post('/api/submit-terminal', async (req, res) => {
         
         const resend = new Resend(process.env.RESEND_KEY);
         const brTimeString = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-        
         const remetentePadrao = "onboarding@resend.dev"; 
 
         try {
@@ -95,8 +93,7 @@ app.post('/api/submit-terminal', async (req, res) => {
 
         } catch (error) {
             console.error("Erro fatal no envio de e-mail pela Resend:", error);
-            // Retorna sucesso para o frontend para evitar o erro de rede,
-            // mas com uma mensagem de aviso.
+            // Retorna sucesso para o frontend (para evitar o erro de rede)
             return res.json({ 
                 success: true, 
                 message: "Comando executado. (ALERTA: Falha no registro de e-mail. Contactar a equipe de suporte.)"
@@ -116,11 +113,31 @@ app.post('/api/submit-terminal', async (req, res) => {
 
 // ROTA 4: Tratamento 404 para qualquer outra rota não definida
 app.use((req, res, next) => {
-    // Certifique-se de que o 404 retorne JSON, e não HTML (para não quebrar o frontend)
     res.status(404).json({ success: false, message: "Endpoint da API não encontrado.", code: "API_NOT_FOUND" });
 });
 
 
+// --- INICIALIZAÇÃO EXPLÍCITA DO SERVIDOR (Ajuda a Vercel a se orientar) ---
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(port, () => {
+        console.log(`Servidor rodando em http://localhost:${port}`);
+    });
+}
+// --- FIM DA INICIALIZAÇÃO EXPLÍCITA ---
+
+
 // Exporta o app para o Vercel
 module.exports = app;
+```
+---
+
+### Próxima Ação
+
+1.  **Substitua o `index.js`** com o código acima.
+2.  **Faça o commit e o push** da alteração para o GitHub.
+    ```bash
+    git add backend/index.js
+    git commit -m "Adicionando app.listen para estabilizar a inicialização do Express na Vercel."
+    git push origin main
+    
 
