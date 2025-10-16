@@ -1,134 +1,97 @@
-// Cloudflare Worker: API de Validação (Sem Express)
-// Substitui o backend da Vercel
+const express = require('express');
+const bodyParser = require('body-parser');
+const { Resend } = require('resend');
 
-// Lógica de roteamento
-const handleRequest = async (request, env) => {
-    const url = new URL(request.url);
-    const path = url.pathname;
-    const method = request.method;
+const app = express();
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-    // Chaves de Flags
-    const flagsCorretas = {
-        "CONTINGENCIA": "ENIAC",
-        "ANALISE": "UFJRQkZISQ==", 
-        "HEURISTICA": "IA",
-        "EXECUCAO": "GURANZVVFRGUVPCG" 
-    };
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-    // Cabeçalhos CORS (Permite a comunicação com o seu site no GitHub Pages)
-    const corsHeaders = {
-        'Access-Control-Allow-Origin': 'https://guaraconecta.github.io',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-    };
-
-    // Função de resposta JSON
-    const jsonResponse = (data, status = 200) => {
-        return new Response(JSON.stringify(data), {
-            status,
-            headers: { 
-                'Content-Type': 'application/json',
-                ...corsHeaders 
-            }
-        });
-    };
-    
-    // Lógica para OPTIONS (CORS preflight)
-    if (method === 'OPTIONS') {
-        return new Response(null, { status: 204, headers: corsHeaders });
-    }
-    
-    // Analisa o FormData para requisições POST
-    let data = {};
-    if (method === 'POST') {
-        try {
-            const formData = await request.formData();
-            formData.forEach((value, key) => { data[key] = value; });
-        } catch (e) {
-            return jsonResponse({ success: false, message: "Erro ao processar dados de formulário." }, 400);
-        }
-    }
-
-
-    // --- ROTEAMENTO ---
-
-    // ROTA 1: GET /terminal/4858/ (Redirecionamento)
-    if (path === '/terminal/4858/' && method === 'GET') {
-        return Response.redirect('https://guaraconecta.github.io/ctfporteira/index.html', 302);
-    }
-    
-    // ROTA 2: POST /api/submit (Flags Intermediárias)
-    if (path === '/api/submit' && method === 'POST') {
-        const flagSubmetida = (data.flag || "").trim().toUpperCase().replace(/\s/g, ''); 
-        const flagType = (data.type || "").trim().toUpperCase();
-
-        const flagCorreta = flagsCorretas[flagType];
-        if (!flagCorreta || flagSubmetida !== flagCorreta.toUpperCase()) {
-            return jsonResponse({ success: false, message: "Flag incorreta. Tente novamente." });
-        }
-        
-        if (flagType === "EXECUCAO") {
-            return jsonResponse({ 
-                success: true, 
-                message: "Flag EXECUTADA! O Terminal de Expurgo está ativo.",
-                next_step: "https://guaraconecta.github.io/ctfporteira/index.html"
-            });
-        }
-        return jsonResponse({ success: true, message: `Flag ${flagType} aceita! A próxima pista foi liberada.` });
-    }
-
-
-    // ROTA 3: POST /api/submit-terminal (Chave 5 - CACHE)
-    if (path === '/api/submit-terminal' && method === 'POST') {
-        const telefone = (data.telefone || "").trim();
-        const email = (data.email || "").trim();
-        const expurgo = (data.expurgo || "").trim().toUpperCase();
-
-        if (expurgo === "CACHE" && telefone && email) {
-            
-            // Lógica de Registro de Vencedor (Assumindo que você configurou o KV e o Resend Binding)
-            
-            return jsonResponse({ 
-                success: true, 
-                message: "Comando de expurgo executado com sucesso! O registro da sua vitória foi salvo."
-            });
-        }
-        
-        if (!telefone || !email || !expurgo) {
-             return jsonResponse({ success: false, message: "Erro: Todos os campos (telefone, e-mail e senha) devem ser preenchidos." });
-        }
-        
-        return jsonResponse({ success: false, message: "Senha-mestra incorreta. Tente novamente." });
-    }
-
-    // Tratamento 404
-    return jsonResponse({ success: false, message: "Endpoint da API não encontrado.", code: "API_NOT_FOUND" }, 404);
+// Flags corretas para validação
+const flagsCorretas = {
+  CONTINGENCIA: "ENIAC",
+  ANALISE: "UFJRQkZISQ==",
+  HEURISTICA: "IA",
+  EXECUCAO: "GURANZVVFRGUVPCG"
 };
 
-export default {
-    fetch: handleRequest,
+// Resposta CORS para o frontend hospedado no Github Pages
+const corsMiddleware = (req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "https://guaraconecta.github.io");
+  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+  next();
 };
-```
 
-### Passo 2: Configuração na Cloudflare (Crucial)
+app.use(corsMiddleware);
 
-Você precisa configurar o Worker para que ele tenha acesso ao envio de e-mails e saiba qual é o seu domínio.
+// Rota GET para redirecionamento
+app.get('/terminal/4858/', (req, res) => {
+  res.redirect(302, 'https://guaraconecta.github.io/ctfporteira/index.html');
+});
 
-1.  **Configure o Worker Name:** Use o nome do Worker (ex: `ctf-api-worker`) para construir o URL de API (ex: `https://ctf-api-worker.workers.dev`).
-2.  **Bindings:** Se você quiser que o e-mail funcione, configure os Bindings no painel da Cloudflare:
-    * **KV Namespace (Opcional):** Se você quer rastrear o vencedor, configure o KV como fizemos antes.
-    * **Resend/Mailgun (E-mail):** Configure o Service Binding para o envio de e-mail (usando sua chave da Resend como Secret) no painel da Cloudflare.
+// Rota POST para submissão de flags intermediárias
+app.post('/api/submit', (req, res) => {
+  const flagSubmetida = (req.body.flag || "").trim().toUpperCase().replace(/\s/g, '');
+  const flagType = (req.body.type || "").trim().toUpperCase();
 
-### Passo 3: Atualizar o Frontend (Seu Arquivo `index.html` e `submit.html`)
+  const flagCorreta = flagsCorretas[flagType];
+  if (!flagCorreta || flagSubmetida !== flagCorreta.toUpperCase()) {
+    return res.json({ success: false, message: "Flag incorreta. Tente novamente." });
+  }
 
-Este é o passo mais importante: **você precisa dizer às suas páginas HTML (no GitHub Pages) para enviarem os dados para o novo endereço da API na Cloudflare, não mais para a Vercel.**
+  if (flagType === "EXECUCAO") {
+    return res.json({
+      success: true,
+      message: "Flag EXECUTADA! O Terminal de Expurgo está ativo.",
+      next_step: "https://guaraconecta.github.io/ctfporteira/index.html"
+    });
+  }
+  return res.json({ success: true, message: Flag ${flagType} aceita! A próxima pista foi liberada. });
+});
 
-**Altere a `API_URL` em:**
-1.  **`index.html`** (para submeter a senha `CACHE`).
-2.  **`submit.html`** (para submeter as flags intermediárias).
+// Rota POST para o comando de expurgo/cache
+app.post('/api/submit-terminal', async (req, res) => {
+  const telefone = (req.body.telefone || "").trim();
+  const email = (req.body.email || "").trim();
+  const expurgo = (req.body.expurgo || "").trim().toUpperCase();
 
-```javascript
-// Exemplo de como deve ficar a variável no seu HTML:
-const API_URL = 'https://SEU-DOMINIO-WORKER.workers.dev'; 
-// Substitua SEU-DOMINIO-WORKER.workers.dev pelo domínio real do seu novo Worker
+  if (!telefone || !email || !expurgo) {
+    return res.json({ success: false, message: "Erro: Todos os campos (telefone, e-mail e senha) devem ser preenchidos." });
+  }
 
+  if (expurgo !== "CACHE") {
+    return res.json({ success: false, message: "Senha-mestra incorreta. Tente novamente." });
+  }
+
+  try {
+    // Envia e-mail com Resend
+    await resend.emails.send({
+      from: 'polypuslabs@proton.me',  // configure email remetente
+      to: email,
+      subject: 'Comando de Expurgo Executado - Vitória CTF',
+      html: `
+        <p>Olá,</p>
+        <p>Seu comando de expurgo foi executado com sucesso.</p>
+        <p>Telefone registrado: ${telefone}</p>`,
+    });
+
+    // Aqui você pode adicionar armazenamento em banco (não incluso neste exemplo)
+
+    return res.json({ success: true, message: "Comando de expurgo executado com sucesso! Email enviado." });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Erro ao enviar email.", error: error.toString() });
+  }
+});
+
+// Rota para 404 (endpoints não encontrados)
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: "Endpoint da API não encontrado.", code: "API_NOT_FOUND" });
+});
+
+// Inicia o servidor (Vercel usar export default para serverless)
+module.exports = app;

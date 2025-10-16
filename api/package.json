@@ -1,6 +1,7 @@
 {
   "dependencies": {
-    "formidable": "^3.5.4",
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
     "resend": "^6.1.3"
   }
 }
