@@ -196,97 +196,100 @@
         <div class="message" id="msg"></div>
     </div>
     <script>
-        // Matrix rain effect
-        const c = document.querySelector('canvas.matrix');
-        const ctx = c.getContext('2d');
-        function resizeMatrixCanvas() {
-            c.width = window.innerWidth;
-            c.height = window.innerHeight;
-        }
-        resizeMatrixCanvas();
-        let fontSize = Math.max(Math.min(window.innerWidth / 24, 22), 12);
-        let columns = Math.floor(c.width / fontSize);
-        let drops = Array(columns).fill(1);
-        function drawMatrix() {
-            ctx.fillStyle = "rgba(11, 24, 9, 0.18)";
-            ctx.fillRect(0, 0, c.width, c.height);
-            ctx.font = fontSize + "px Share Tech Mono, monospace";
-            ctx.fillStyle = "#38ff21";
-            for(let i = 0; i < drops.length; i++) {
-                const txt = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&"[Math.floor(Math.random()*69)];
-                ctx.fillText(txt, i*fontSize, drops[i]*fontSize);
-                if(drops[i]*fontSize > c.height && Math.random() > 0.96) drops[i] = 0;
-                drops[i]++;
+        // --- CÓDIGO EMBRULHADO EM DOMContentLoaded PARA RESOLVER O ERRO NULL ---
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // Matrix rain effect
+            const c = document.querySelector('canvas.matrix');
+            const ctx = c.getContext('2d');
+            function resizeMatrixCanvas() {
+                c.width = window.innerWidth;
+                c.height = window.innerHeight;
             }
-        }
-        setInterval(drawMatrix, 53);
-        window.addEventListener('resize', () => {
             resizeMatrixCanvas();
-            fontSize = Math.max(Math.min(window.innerWidth / 24, 22), 12);
-            columns = Math.floor(c.width / fontSize);
-            drops = Array(columns).fill(1);
-        });
-
-        // --- Lógica de Submissão para a Vercel ---
-        const API_URL = 'https://ctfporteira.vercel.app'; 
-
-        document.getElementById('ctfform').addEventListener('submit', async function(e) {
-            e.preventDefault(); // Impede o envio padrão do formulário.
-
-            const form = e.target;
-            const messageDiv = document.getElementById('msg');
-            messageDiv.textContent = 'Processando...';
-            messageDiv.style.color = '#fffdc2'; // Cor amarela/branca para processamento
-
-            const resposta = document.getElementById('resposta').value.trim().toUpperCase();
-            
-            const inicioDiv = document.getElementById('inicio');
-            const expurgoDiv = document.getElementById('expurgo');
-
-            // **PASSO 1: Lógica de Transição de Tela (CODIGO)**
-            if (inicioDiv.style.display !== "none" && resposta === "CODIGO") {
-                inicioDiv.style.display = "none";
-                expurgoDiv.style.display = "flex";
-                document.getElementById('telefone').required = true;
-                document.getElementById('email').required = true;
-                document.getElementById('expurgoInput').required = true;
-                document.getElementById('telefone').focus();
-                messageDiv.textContent = "Chave reconhecida! Digite seus dados e a senha-mestra final para expulsar o invasor.";
-                messageDiv.style.color = '#36ff21'; // Cor verde para sucesso
-                return; // Interrompe o envio para a API
-            }
-
-            // **PASSO 2: Envio Final para a Vercel (CACHE)**
-            // Se o formulário de expurgo estiver visível E ESTIVERMOS NO MODO DE ENVIO FINAL
-            if (expurgoDiv.style.display !== "none") {
-                try {
-                    // ESTA É A CHAMADA FETCH FALTANTE PARA A API DA VERCEL
-                    const response = await fetch(API_URL + '/api/submit-terminal', {
-                        method: 'POST',
-                        body: new FormData(form),
-                    });
-                    
-                    const result = await response.json();
-
-                    if (result.success) {
-                        messageDiv.textContent = 'SUCESSO! ' + result.message;
-                        messageDiv.style.color = '#36ff21'; 
-                    } else {
-                        messageDiv.textContent = 'ERRO: ' + result.message;
-                        messageDiv.style.color = '#ff4141'; // Cor vermelha para erro
-                    }
-                } catch (error) {
-                    // Captura o erro de rede (que você estava vendo)
-                    messageDiv.textContent = 'Erro de rede ou servidor. Verifique a conexão.';
-                    messageDiv.style.color = '#ff4141';
-                    console.error('Fetch Error:', error);
+            let fontSize = Math.max(Math.min(window.innerWidth / 24, 22), 12);
+            let columns = Math.floor(c.width / fontSize);
+            let drops = Array(columns).fill(1);
+            function drawMatrix() {
+                ctx.fillStyle = "rgba(11, 24, 9, 0.18)";
+                ctx.fillRect(0, 0, c.width, c.height);
+                ctx.font = fontSize + "px Share Tech Mono, monospace";
+                ctx.fillStyle = "#38ff21";
+                for(let i = 0; i < drops.length; i++) {
+                    const txt = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&"[Math.floor(Math.random()*69)];
+                    ctx.fillText(txt, i*fontSize, drops[i]*fontSize);
+                    if(drops[i]*fontSize > c.height && Math.random() > 0.96) drops[i] = 0;
+                    drops[i]++;
                 }
-            } else {
-                // Se a resposta inicial não era CODIGO
-                messageDiv.textContent = "Resposta incorreta, tente novamente.";
-                messageDiv.style.color = '#ff4141';
             }
-        });
+            setInterval(drawMatrix, 53);
+            window.addEventListener('resize', () => {
+                resizeMatrixCanvas();
+                fontSize = Math.max(Math.min(window.innerWidth / 24, 22), 12);
+                columns = Math.floor(c.width / fontSize);
+                drops = Array(columns).fill(1);
+            });
+
+            // --- Lógica de Submissão para a Cloudflare Worker ---
+            const API_URL = 'https://super-snow-f8a9.sgtivanp.workers.dev'; 
+
+            document.getElementById('ctfform').addEventListener('submit', async function(e) {
+                e.preventDefault(); // Impede o envio padrão do formulário.
+
+                const form = e.target;
+                const messageDiv = document.getElementById('msg');
+                messageDiv.textContent = 'Processando...';
+                messageDiv.style.color = '#fffdc2'; // Cor amarela/branca para processamento
+
+                const resposta = document.getElementById('resposta').value.trim().toUpperCase();
+                
+                const inicioDiv = document.getElementById('inicio');
+                const expurgoDiv = document.getElementById('expurgo');
+
+                // **PASSO 1: Lógica de Transição de Tela (CODIGO)**
+                if (inicioDiv.style.display !== "none" && resposta === "CODIGO") {
+                    inicioDiv.style.display = "none";
+                    expurgoDiv.style.display = "flex";
+                    document.getElementById('telefone').required = true;
+                    document.getElementById('email').required = true;
+                    document.getElementById('expurgoInput').required = true;
+                    document.getElementById('telefone').focus();
+                    messageDiv.textContent = "Chave reconhecida! Digite seus dados e a senha-mestra final para expulsar o invasor.";
+                    messageDiv.style.color = '#36ff21'; // Cor verde para sucesso
+                    return; // Interrompe o envio para a API
+                }
+
+                // **PASSO 2: Envio Final para o Cloudflare Worker (CACHE)**
+                if (expurgoDiv.style.display !== "none") {
+                    try {
+                        const response = await fetch(API_URL + '/api/submit-terminal', {
+                            method: 'POST',
+                            body: new FormData(form),
+                        });
+                        
+                        // O Cloudflare Worker garante que a resposta seja JSON
+                        const result = await response.json();
+
+                        if (result.success) {
+                            messageDiv.textContent = 'SUCESSO! ' + result.message;
+                            messageDiv.style.color = '#36ff21'; 
+                        } else {
+                            messageDiv.textContent = 'ERRO: ' + result.message;
+                            messageDiv.style.color = '#ff4141'; // Cor vermelha para erro
+                        }
+                    } catch (error) {
+                        // Captura o erro de rede
+                        messageDiv.textContent = 'Erro de rede ou servidor. Verifique a conexão.';
+                        messageDiv.style.color = '#ff4141';
+                        console.error('Fetch Error:', error);
+                    }
+                } else {
+                    // Se a resposta inicial não era CODIGO
+                    messageDiv.textContent = "Resposta incorreta, tente novamente.";
+                    messageDiv.style.color = '#ff4141';
+                }
+            });
+        }); // FIM DO DOMContentLoaded LISTENER
     </script>
 </body>
 </html>

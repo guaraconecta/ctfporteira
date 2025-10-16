@@ -49,8 +49,8 @@
             messageDiv.style.color = '#fffdc2';
 
             try {
-                // A URL completa da API na Vercel
-                const API_URL = 'https://ctfporteira.vercel.app'; 
+                // ATUALIZANDO: URL da API migrada da Vercel para o Cloudflare Worker
+                const API_URL = 'https://super-snow-f8a9.sgtivanp.workers.dev'; 
                 const response = await fetch(API_URL + '/api/submit', {
                     method: 'POST',
                     body: new FormData(form)
@@ -70,6 +70,7 @@
                     messageDiv.textContent = `ERRO: ${result.message}`;
                 }
             } catch (error) {
+                // Este erro deve sumir após a migração para o Worker
                 messageDiv.style.color = '#ff4141';
                 messageDiv.textContent = 'Erro de rede ou servidor. Verifique a conexão.';
                 console.error('Fetch Error:', error);
@@ -78,3 +79,4 @@
     </script>
 </body>
 </html>
+
