@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "formidable": "^3.5.4"
+    "formidable": "^3.5.4",
+    "resend": "^6.1.3"
   }
 }
