@@ -19,16 +19,8 @@ const flagsCorretas = {
 
 // --- MIDDLEWARE ---
 
-// Configura CORS para permitir apenas o seu site no GitHub Pages
-const corsOptions = {
-    // Adiciona o domínio exato do seu frontend para evitar erros de segurança
-    origin: 'https://guaraconecta.github.io', 
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
-    optionsSuccessStatus: 204
-};
-
-app.use(cors(corsOptions)); 
+// **CORREÇÃO FINAL DO CORS:** Permite TODAS as origens (*). Isso deve resolver o erro de pré-voo (preflight).
+app.use(cors()); 
 
 // Permite ao Express ler dados de formulários (FormData) de forma robusta
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
@@ -84,7 +76,6 @@ app.post('/api/submit-terminal', async (req, res) => {
         const resend = new Resend(process.env.RESEND_KEY);
         const brTimeString = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
         
-        // Remetente padrão para evitar falhas de verificação de domínio
         const remetentePadrao = "onboarding@resend.dev"; 
 
         try {
@@ -104,7 +95,7 @@ app.post('/api/submit-terminal', async (req, res) => {
 
         } catch (error) {
             console.error("Erro fatal no envio de e-mail pela Resend:", error);
-            // Retorna sucesso para o frontend (para evitar o erro de rede),
+            // Retorna sucesso para o frontend para evitar o erro de rede,
             // mas com uma mensagem de aviso.
             return res.json({ 
                 success: true, 
@@ -114,7 +105,6 @@ app.post('/api/submit-terminal', async (req, res) => {
     }
     
     // --- Lógica de ERRO ---
-    // Se algum campo estiver faltando
     if (!telefone || !email || !expurgo) {
          return res.json({ success: false, message: "Erro: Todos os campos (telefone, e-mail e senha) devem ser preenchidos." });
     }
@@ -126,6 +116,7 @@ app.post('/api/submit-terminal', async (req, res) => {
 
 // ROTA 4: Tratamento 404 para qualquer outra rota não definida
 app.use((req, res, next) => {
+    // Certifique-se de que o 404 retorne JSON, e não HTML (para não quebrar o frontend)
     res.status(404).json({ success: false, message: "Endpoint da API não encontrado.", code: "API_NOT_FOUND" });
 });
 
