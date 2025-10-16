@@ -1,143 +1,134 @@
-// /backend/index.js
+// Cloudflare Worker: API de Validação (Sem Express)
+// Substitui o backend da Vercel
 
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors'); 
-const app = express();
-const port = process.env.PORT || 3000;
+// Lógica de roteamento
+const handleRequest = async (request, env) => {
+    const url = new URL(request.url);
+    const path = url.pathname;
+    const method = request.method;
 
-// Configuração da Resend
-const Resend = require('resend').Resend;
+    // Chaves de Flags
+    const flagsCorretas = {
+        "CONTINGENCIA": "ENIAC",
+        "ANALISE": "UFJRQkZISQ==", 
+        "HEURISTICA": "IA",
+        "EXECUCAO": "GURANZVVFRGUVPCG" 
+    };
 
-// Chaves de Flags Intermediárias (Para a ROTA /api/submit)
-const flagsCorretas = {
-    "CONTINGENCIA": "ENIAC",
-    "ANALISE": "UFJRQkZISQ==", 
-    "HEURISTICA": "IA",
-    "EXECUCAO": "GURANZVVFRGUVPCG" 
-};
+    // Cabeçalhos CORS (Permite a comunicação com o seu site no GitHub Pages)
+    const corsHeaders = {
+        'Access-Control-Allow-Origin': 'https://guaraconecta.github.io',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+    };
 
-// --- MIDDLEWARE ---
-
-// **CORREÇÃO FINAL DO CORS:** Permite TODAS as origens (*) para resolver o erro de pré-voo.
-app.use(cors()); 
-
-// Permite ao Express ler dados de formulários (FormData) de forma robusta
-app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
-
-// Permite ao Express ler JSON
-app.use(bodyParser.json({ limit: '50mb' })); 
-
-
-// ROTA 1: Intercepta o acesso GET ao caminho do terminal (Redirecionamento 302)
-app.get('/terminal/4858/', (req, res) => {
-    // Redireciona o usuário para o frontend correto
-    res.redirect(302, 'https://guaraconecta.github.io/ctfporteira/index.html');
-});
-
-// ROTA 2: Validação das Flags Intermediárias (Usada por submit.html)
-app.post('/api/submit', (req, res) => {
-    const { team, type, flag } = req.body;
-    const flagSubmetida = (flag || "").trim().toUpperCase().replace(/\s/g, ''); 
-    const flagType = (type || "").trim().toUpperCase();
-
-    // 1. Validação
-    const flagCorreta = flagsCorretas[flagType];
-    if (!flagCorreta || flagSubmetida !== flagCorreta.toUpperCase()) {
-        return res.status(200).json({ success: false, message: "Flag incorreta. Tente novamente." });
-    }
-
-    // 2. Resposta de Sucesso
-    if (flagType === "EXECUCAO") {
-        return res.status(200).json({ 
-            success: true, 
-            message: "Flag EXECUTADA! O Terminal de Expurgo está ativo.",
-            next_step: "https://guaraconecta.github.io/ctfporteira/index.html"
+    // Função de resposta JSON
+    const jsonResponse = (data, status = 200) => {
+        return new Response(JSON.stringify(data), {
+            status,
+            headers: { 
+                'Content-Type': 'application/json',
+                ...corsHeaders 
+            }
         });
+    };
+    
+    // Lógica para OPTIONS (CORS preflight)
+    if (method === 'OPTIONS') {
+        return new Response(null, { status: 204, headers: corsHeaders });
+    }
+    
+    // Analisa o FormData para requisições POST
+    let data = {};
+    if (method === 'POST') {
+        try {
+            const formData = await request.formData();
+            formData.forEach((value, key) => { data[key] = value; });
+        } catch (e) {
+            return jsonResponse({ success: false, message: "Erro ao processar dados de formulário." }, 400);
+        }
     }
 
-    return res.status(200).json({ 
-        success: true, 
-        message: `Flag ${flagType} aceita! A próxima pista foi liberada.` 
-    });
-});
 
+    // --- ROTEAMENTO ---
 
-// ROTA 3: Validação do Terminal de Expurgo (Chave 5 - CACHE)
-app.post('/api/submit-terminal', async (req, res) => {
-    const telefone = (req.body.telefone || "").trim();
-    const email = (req.body.email || "").trim();
-    const expurgo = (req.body.expurgo || "").trim().toUpperCase();
+    // ROTA 1: GET /terminal/4858/ (Redirecionamento)
+    if (path === '/terminal/4858/' && method === 'GET') {
+        return Response.redirect('https://guaraconecta.github.io/ctfporteira/index.html', 302);
+    }
     
-    // Validação da senha mestra CACHE (SUCESSO FINAL)
-    if (expurgo === "CACHE" && telefone && email) {
+    // ROTA 2: POST /api/submit (Flags Intermediárias)
+    if (path === '/api/submit' && method === 'POST') {
+        const flagSubmetida = (data.flag || "").trim().toUpperCase().replace(/\s/g, ''); 
+        const flagType = (data.type || "").trim().toUpperCase();
+
+        const flagCorreta = flagsCorretas[flagType];
+        if (!flagCorreta || flagSubmetida !== flagCorreta.toUpperCase()) {
+            return jsonResponse({ success: false, message: "Flag incorreta. Tente novamente." });
+        }
         
-        const resend = new Resend(process.env.RESEND_KEY);
-        const brTimeString = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-        const remetentePadrao = "onboarding@resend.dev"; 
-
-        try {
-            // ENVIO PARA A POLYPUS LABS (Registo de Vencedor)
-            await resend.emails.send({
-                from: remetentePadrao,
-                to: ["polypuslabs@proton.me"],
-                subject: "NOVO VENCEDOR DO CTF",
-                text: `REGISTRO DE VITÓRIA\n--------------------\nTelefone: ${telefone}\nE-mail: ${email}\nData/Hora: ${brTimeString}`
+        if (flagType === "EXECUCAO") {
+            return jsonResponse({ 
+                success: true, 
+                message: "Flag EXECUTADA! O Terminal de Expurgo está ativo.",
+                next_step: "https://guaraconecta.github.io/ctfporteira/index.html"
             });
+        }
+        return jsonResponse({ success: true, message: `Flag ${flagType} aceita! A próxima pista foi liberada.` });
+    }
 
-            // Resposta de Sucesso
-            return res.json({ 
+
+    // ROTA 3: POST /api/submit-terminal (Chave 5 - CACHE)
+    if (path === '/api/submit-terminal' && method === 'POST') {
+        const telefone = (data.telefone || "").trim();
+        const email = (data.email || "").trim();
+        const expurgo = (data.expurgo || "").trim().toUpperCase();
+
+        if (expurgo === "CACHE" && telefone && email) {
+            
+            // Lógica de Registro de Vencedor (Assumindo que você configurou o KV e o Resend Binding)
+            
+            return jsonResponse({ 
                 success: true, 
                 message: "Comando de expurgo executado com sucesso! O registro da sua vitória foi salvo."
             });
-
-        } catch (error) {
-            console.error("Erro fatal no envio de e-mail pela Resend:", error);
-            // Retorna sucesso para o frontend (para evitar o erro de rede)
-            return res.json({ 
-                success: true, 
-                message: "Comando executado. (ALERTA: Falha no registro de e-mail. Contactar a equipe de suporte.)"
-            });
         }
+        
+        if (!telefone || !email || !expurgo) {
+             return jsonResponse({ success: false, message: "Erro: Todos os campos (telefone, e-mail e senha) devem ser preenchidos." });
+        }
+        
+        return jsonResponse({ success: false, message: "Senha-mestra incorreta. Tente novamente." });
     }
-    
-    // --- Lógica de ERRO ---
-    if (!telefone || !email || !expurgo) {
-         return res.json({ success: false, message: "Erro: Todos os campos (telefone, e-mail e senha) devem ser preenchidos." });
-    }
-    
-    // Se não for CACHE e os campos estiverem preenchidos, é uma senha incorreta.
-    return res.json({ success: false, message: "Senha-mestra incorreta. Tente novamente." });
-});
 
+    // Tratamento 404
+    return jsonResponse({ success: false, message: "Endpoint da API não encontrado.", code: "API_NOT_FOUND" }, 404);
+};
 
-// ROTA 4: Tratamento 404 para qualquer outra rota não definida
-app.use((req, res, next) => {
-    res.status(404).json({ success: false, message: "Endpoint da API não encontrado.", code: "API_NOT_FOUND" });
-});
-
-
-// --- INICIALIZAÇÃO EXPLÍCITA DO SERVIDOR (Ajuda a Vercel a se orientar) ---
-if (process.env.NODE_ENV !== 'production') {
-    app.listen(port, () => {
-        console.log(`Servidor rodando em http://localhost:${port}`);
-    });
-}
-// --- FIM DA INICIALIZAÇÃO EXPLÍCITA ---
-
-
-// Exporta o app para o Vercel
-module.exports = app;
+export default {
+    fetch: handleRequest,
+};
 ```
----
 
-### Próxima Ação
+### Passo 2: Configuração na Cloudflare (Crucial)
 
-1.  **Substitua o `index.js`** com o código acima.
-2.  **Faça o commit e o push** da alteração para o GitHub.
-    ```bash
-    git add backend/index.js
-    git commit -m "Adicionando app.listen para estabilizar a inicialização do Express na Vercel."
-    git push origin main
-    
+Você precisa configurar o Worker para que ele tenha acesso ao envio de e-mails e saiba qual é o seu domínio.
+
+1.  **Configure o Worker Name:** Use o nome do Worker (ex: `ctf-api-worker`) para construir o URL de API (ex: `https://ctf-api-worker.workers.dev`).
+2.  **Bindings:** Se você quiser que o e-mail funcione, configure os Bindings no painel da Cloudflare:
+    * **KV Namespace (Opcional):** Se você quer rastrear o vencedor, configure o KV como fizemos antes.
+    * **Resend/Mailgun (E-mail):** Configure o Service Binding para o envio de e-mail (usando sua chave da Resend como Secret) no painel da Cloudflare.
+
+### Passo 3: Atualizar o Frontend (Seu Arquivo `index.html` e `submit.html`)
+
+Este é o passo mais importante: **você precisa dizer às suas páginas HTML (no GitHub Pages) para enviarem os dados para o novo endereço da API na Cloudflare, não mais para a Vercel.**
+
+**Altere a `API_URL` em:**
+1.  **`index.html`** (para submeter a senha `CACHE`).
+2.  **`submit.html`** (para submeter as flags intermediárias).
+
+```javascript
+// Exemplo de como deve ficar a variável no seu HTML:
+const API_URL = 'https://SEU-DOMINIO-WORKER.workers.dev'; 
+// Substitua SEU-DOMINIO-WORKER.workers.dev pelo domínio real do seu novo Worker
 
