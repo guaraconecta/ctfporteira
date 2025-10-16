@@ -9,7 +9,7 @@ const port = process.env.PORT || 3000;
 // Configuração da Resend
 const Resend = require('resend').Resend;
 
-// Chaves de Flags Intermediárias
+// Chaves de Flags Intermediárias (Para a ROTA /api/submit)
 const flagsCorretas = {
     "CONTINGENCIA": "ENIAC",
     "ANALISE": "UFJRQkZISQ==", 
@@ -19,24 +19,32 @@ const flagsCorretas = {
 
 // --- MIDDLEWARE ---
 
-// Configura CORS para permitir a comunicação entre o GitHub Pages e a Vercel
-app.use(cors()); 
+// Configura CORS para permitir apenas o seu site no GitHub Pages
+const corsOptions = {
+    // Adiciona o domínio exato do seu frontend para evitar erros de segurança
+    origin: 'https://guaraconecta.github.io', 
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+    optionsSuccessStatus: 204
+};
 
-// Permite ao Express ler dados de formulários tradicionais (FormData)
+app.use(cors(corsOptions)); 
+
+// Permite ao Express ler dados de formulários (FormData) de forma robusta
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
-// Permite ao Express ler JSON (para requisições de API padrão)
+// Permite ao Express ler JSON
 app.use(bodyParser.json({ limit: '50mb' })); 
 
 
 // ROTA 1: Intercepta o acesso GET ao caminho do terminal (Redirecionamento 302)
 app.get('/terminal/4858/', (req, res) => {
+    // Redireciona o usuário para o frontend correto
     res.redirect(302, 'https://guaraconecta.github.io/ctfporteira/index.html');
 });
 
 // ROTA 2: Validação das Flags Intermediárias (Usada por submit.html)
 app.post('/api/submit', (req, res) => {
-    // Lógica para flags intermediárias (mantida)
     const { team, type, flag } = req.body;
     const flagSubmetida = (flag || "").trim().toUpperCase().replace(/\s/g, ''); 
     const flagType = (type || "").trim().toUpperCase();
@@ -65,7 +73,7 @@ app.post('/api/submit', (req, res) => {
 
 // ROTA 3: Validação do Terminal de Expurgo (Chave 5 - CACHE)
 app.post('/api/submit-terminal', async (req, res) => {
-    // Extração segura dos dados (usando defaults vazios para prevenir crash)
+    // Extração segura dos dados
     const telefone = (req.body.telefone || "").trim();
     const email = (req.body.email || "").trim();
     const expurgo = (req.body.expurgo || "").trim().toUpperCase();
@@ -105,7 +113,7 @@ app.post('/api/submit-terminal', async (req, res) => {
         }
     }
     
-    // --- Lógica de ERRO Corrigida ---
+    // --- Lógica de ERRO ---
     // Se algum campo estiver faltando
     if (!telefone || !email || !expurgo) {
          return res.json({ success: false, message: "Erro: Todos os campos (telefone, e-mail e senha) devem ser preenchidos." });
@@ -124,15 +132,4 @@ app.use((req, res, next) => {
 
 // Exporta o app para o Vercel
 module.exports = app;
-```
----
-### Próximo Passo
-
-1.  **Substitua o `backend/index.js`** com o código completo acima.
-2.  **Faça o commit e o push** da alteração para o GitHub.
-    ```bash
-    git add backend/index.js
-    git commit -m "Corrigindo Body Parser e rotas de expurgo finais."
-    git push origin main
-    
 
