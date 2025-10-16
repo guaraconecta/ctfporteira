@@ -76,4 +76,4 @@ Data/Hora: ${brTimeString}`
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.status(405).json({ success: false, message: 'Método não permitido.' });
     }
-} "resend": "^3.2.0"
+} "resend": "^6.1.3"
