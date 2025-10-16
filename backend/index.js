@@ -6,6 +6,7 @@ const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Configuração da Resend
 const Resend = require('resend').Resend;
 
 // Chaves de Flags Intermediárias
@@ -16,10 +17,17 @@ const flagsCorretas = {
     "EXECUCAO": "GURANZVVFRGUVPCG" 
 };
 
-// Middleware
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+// --- MIDDLEWARE ---
+
+// Configura CORS para permitir a comunicação entre o GitHub Pages e a Vercel
 app.use(cors()); 
+
+// Permite ao Express ler dados de formulários tradicionais (FormData)
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+
+// Permite ao Express ler JSON (para requisições de API padrão)
+app.use(bodyParser.json({ limit: '50mb' })); 
+
 
 // ROTA 1: Intercepta o acesso GET ao caminho do terminal (Redirecionamento 302)
 app.get('/terminal/4858/', (req, res) => {
@@ -28,7 +36,7 @@ app.get('/terminal/4858/', (req, res) => {
 
 // ROTA 2: Validação das Flags Intermediárias (Usada por submit.html)
 app.post('/api/submit', (req, res) => {
-    // Lógica para flags intermediárias (mantida para completar o projeto)
+    // Lógica para flags intermediárias (mantida)
     const { team, type, flag } = req.body;
     const flagSubmetida = (flag || "").trim().toUpperCase().replace(/\s/g, ''); 
     const flagType = (type || "").trim().toUpperCase();
@@ -57,7 +65,7 @@ app.post('/api/submit', (req, res) => {
 
 // ROTA 3: Validação do Terminal de Expurgo (Chave 5 - CACHE)
 app.post('/api/submit-terminal', async (req, res) => {
-    // Extração segura dos dados e preenchimento de variáveis
+    // Extração segura dos dados (usando defaults vazios para prevenir crash)
     const telefone = (req.body.telefone || "").trim();
     const email = (req.body.email || "").trim();
     const expurgo = (req.body.expurgo || "").trim().toUpperCase();
@@ -68,10 +76,11 @@ app.post('/api/submit-terminal', async (req, res) => {
         const resend = new Resend(process.env.RESEND_KEY);
         const brTimeString = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
         
+        // Remetente padrão para evitar falhas de verificação de domínio
         const remetentePadrao = "onboarding@resend.dev"; 
 
         try {
-            // **ENVIO PARA A POLYPUS LABS (Registo de Vencedor)**
+            // ENVIO PARA A POLYPUS LABS (Registo de Vencedor)
             await resend.emails.send({
                 from: remetentePadrao,
                 to: ["polypuslabs@proton.me"],
@@ -86,8 +95,9 @@ app.post('/api/submit-terminal', async (req, res) => {
             });
 
         } catch (error) {
-            console.error("Erro fatal na Resend, mas registrando sucesso para o usuário:", error);
-            // Retorna SUCESSO para o frontend para evitar o erro de rede.
+            console.error("Erro fatal no envio de e-mail pela Resend:", error);
+            // Retorna sucesso para o frontend (para evitar o erro de rede),
+            // mas com uma mensagem de aviso.
             return res.json({ 
                 success: true, 
                 message: "Comando executado. (ALERTA: Falha no registro de e-mail. Contactar a equipe de suporte.)"
@@ -95,8 +105,8 @@ app.post('/api/submit-terminal', async (req, res) => {
         }
     }
     
-    // --- Lógica de ERRO CORRIGIDA ---
-    // Checa se os campos estão faltando
+    // --- Lógica de ERRO Corrigida ---
+    // Se algum campo estiver faltando
     if (!telefone || !email || !expurgo) {
          return res.json({ success: false, message: "Erro: Todos os campos (telefone, e-mail e senha) devem ser preenchidos." });
     }
@@ -114,4 +124,15 @@ app.use((req, res, next) => {
 
 // Exporta o app para o Vercel
 module.exports = app;
+```
+---
+### Próximo Passo
+
+1.  **Substitua o `backend/index.js`** com o código completo acima.
+2.  **Faça o commit e o push** da alteração para o GitHub.
+    ```bash
+    git add backend/index.js
+    git commit -m "Corrigindo Body Parser e rotas de expurgo finais."
+    git push origin main
+    
 
